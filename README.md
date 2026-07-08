@@ -137,12 +137,12 @@ It also pointed to a real fix: if this pattern keeps showing up and getting inve
 
 | Finding | Assessment |
 |---------|------------|
-| 4 failed logons (4625) on DC-01 | Likely MFA proxy retry or timeout behavior |
-| 102 successful logons (4624) from 10.10.0.20 | Normal MFA proxy authenticating users against AD |
+| 4 failed logons (4625) on `DC-01` | Likely MFA proxy retry or timeout behavior |
+| 102 successful logons (4624) from 10.10.0.10 | Normal MFA proxy authenticating users against AD |
 | Multiple employee accounts in logon events | Expected — MFA processes all user authentications |
 | Service_ADISync account appearing | Expected — AD sync service authenticates through MFA |
 | NTLM flagged as possible Pass-the-Hash | False positive — NTLM is MFA proxy's authentication method |
-| PROXY-01$ accessing FS-01 (5140) | Routine machine account activity (GP, sync, or scheduled task) |
+| `PROXY-01$` accessing `FS-01` (5140) | Routine machine account activity (GP, sync, or scheduled task) |
 | No 7045 / 4698 / 4702 events | No persistence mechanisms installed — no post-exploitation |
 | No Domain Admin accounts involved | Low risk even if activity were suspicious |
 
