@@ -31,6 +31,7 @@ rule.mitre.tactic: "Credential Access"
 ```
 Queried for activity mapped to the Credential Access tactic to identify leads worth investigating further, and scoped the time window to the last 24 hours for the rest of the hunt.
 <img width="1901" height="80" alt="image" src="https://github.com/user-attachments/assets/d4bcecc4-f81a-48e9-ab22-4adcfeed12e5" />
+"Credential Access" covers techniques used to steal account credentials such as passwords and hashes. Starting with a broad MITRE tactic query is a good first step when triaging unknown activity because it surfaces activity that Wazuh has already mapped to known attack patterns, making them higher priority to investigate.
 
 #### What Was Found
 - Rule ID: 60204 — Multiple Windows Logon Failures
@@ -44,6 +45,7 @@ agent.name: "DC-01" and data.win.system.eventID: 4625
 ```
 Pulls the raw failed-logon events (Event ID 4625) that triggered the detection rule, rather than relying on the alert summary alone.
 <img width="2335" height="139" alt="image" src="https://github.com/user-attachments/assets/f56e8ce5-fad8-4941-85db-eabb0005d1e4" />
+Rule 60204 is a composite/aggregation rule, meaning Wazuh fired it as a summary after detecting multiple individual failed logon events. To find the raw underlying events, I queried for Windows Event ID 4625 (Failed Logon) directly on `DC-01`. Windows Event ID 4625 is the standard Windows Security log event for a failed logon attempt. By filtering to `DC-01` specifically, we narrowed the scope to just the Domain Controller that triggered the alert. Domain Controllers are high-value targets because they manage authentication for the entire organization, so failed logon events on a DC warrant close attention.
 
 #### What Was Found
 - 4 failed logon attempts throughout the day: 5:22, 6:39, 8:10, and 16:05
@@ -59,6 +61,7 @@ agent.name: "DC-01" and data.win.system.eventID: 4624 and data.win.eventdata.ipA
 ```
 Determines whether the source IP eventually succeeded in authenticating — an important distinction between "someone is guessing passwords" and "known authentication traffic that looks noisy."
 <img width="2446" height="712" alt="image" src="https://github.com/user-attachments/assets/cffdbfdb-a09c-4139-b5e9-efaadc9497fa" />
+The most critical question after finding failed logons is whether any succeeded. Windows Event ID 4624 is a successful logon event. If an attacker was failing to log in and then suddenly succeeded, that would represent a critical finding. Combining the agent filter, the event ID, and the source IP ensures we are looking at successful logons specifically from the suspicious IP, not all logons on the DC.
 
 #### What Was Found
 - 102 successful logon events from 10.10.0.10
@@ -76,13 +79,21 @@ data.win.eventdata.ipAddress: 10.10.0.10 and not agent.name: "DC-01"
 ```
 Searches for the same source IP authenticating against *other* hosts in the environment. No hits — no evidence of lateral movement.
 <img width="2481" height="140" alt="image" src="https://github.com/user-attachments/assets/27ed7c3d-4125-4cf1-bd61-8d7e2bc4841e" />
-
+To determine if `10.10.0.10` had touched any other systems beyond `DC-01`, I broadened the search across all agents
 
 ### Step 4b — Check for persistence or post-exploitation activity
 ```
 data.win.system.eventID: (7045 or 4698 or 4702) and data.win.eventdata.ipAddress: 10.10.0.10
 ```
-Looks for new services, scheduled tasks, or task modifications (common persistence mechanisms) tied to the source IP. No hits.
+I also specifically checked for high-risk post-exploitation event IDs that would indicate an attacker installing persistence or scheduled tasks. No hits.
+
+| Event ID | Meaning | Why It Matters |
+|----------|---------|-----------------|
+| 7045 | New service installed | Attackers install services to maintain persistence |
+| 4698 | Scheduled task created | Common technique to run malicious code repeatedly |
+| 4702 | Scheduled task updated | Modification of existing tasks to add malicious actions |
+
+If this were a real Pass-the-Hash attack, the attacker would likely attempt to move laterally to other systems using the stolen credentials. Excluding `DC-01` from the first query reveals activity on other machines. The second query targets specific event IDs that are strong indicators of post-exploitation activity.
 
 #### What Was Found
 - 3 events on agent FS-01 (a file server)
@@ -95,7 +106,7 @@ Looks for new services, scheduled tasks, or task modifications (common persisten
 ```
 agent.name: "PROXY-01"
 ```
-The query results pointed to a Wazuh-monitored host named `PROXY-01`. I confirmed this with the IT team in standup, who verified the IP belongs to the organization's MFA Authentication Proxy — cross-checking the log data against a human source rather than relying on the hostname alone.
+The repeated references to `PROXY-01` in the alert descriptions, combined with the `PROXY-01$` machine account appearing in the `FS-01` events, pointed to a known system. I confirmed this with the IT team in standup, who verified the IP belongs to the organization's MFA Authentication Proxy — cross-checking the log data against a human source rather than relying on the hostname alone.
 
 #### What Was Found
 - No Wazuh agent exists for PROXY-01 — it is not enrolled in Wazuh monitoring
