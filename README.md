@@ -45,11 +45,11 @@ agent.name: "DC-01" and data.win.system.eventID: 4625
 ```
 Pulls the raw failed-logon events (Event ID 4625) that triggered the detection rule, rather than relying on the alert summary alone.
 <img width="2335" height="139" alt="image" src="https://github.com/user-attachments/assets/f56e8ce5-fad8-4941-85db-eabb0005d1e4" />
-Rule 60204 is a composite/aggregation rule, meaning Wazuh fired it as a summary after detecting multiple individual failed logon events. To find the raw underlying events, I queried for Windows Event ID 4625 (Failed Logon) directly on `DC-01`. Windows Event ID 4625 is the standard Windows Security log event for a failed logon attempt. By filtering to `DC-01` specifically, we narrowed the scope to just the Domain Controller that triggered the alert. Domain Controllers are high-value targets because they manage authentication for the entire organization, so failed logon events on a DC warrant close attention.
+Rule 60204 is a composite/aggregation rule, meaning Wazuh fired it as a summary after detecting multiple individual failed logon events. To find the raw underlying events, I queried for Windows Event ID 4625 (Failed Logon) directly on `DC-01`. Windows Event ID 4625 is the standard Windows Security log event for a failed logon attempt. By filtering to `DC-01` specifically, I narrowed the scope to just the Domain Controller that triggered the alert. Domain Controllers are high-value targets because they manage authentication for the entire organization, so failed logon events on a DC warrant close attention.
 
 #### What Was Found
 - 4 failed logon attempts throughout the day: 5:22, 6:39, 8:10, and 16:05
-- All 4 originated from the same source IP: 10.10.0.10
+- All 4 originated from the same source IP: `10.10.0.10`
 - Logon Type 3 (Network) — meaning the attempts came over the network, not from a local console or RDP session
 
 The spread-out timing of the attempts (not clustered together) is consistent with slow/low brute force or password spraying behavior, where an attacker deliberately paces attempts to avoid lockout thresholds.
@@ -64,11 +64,11 @@ Determines whether the source IP eventually succeeded in authenticating — an i
 The most critical question after finding failed logons is whether any succeeded. Windows Event ID 4624 is a successful logon event. If an attacker was failing to log in and then suddenly succeeded, that would represent a critical finding. Combining the agent filter, the event ID, and the source IP ensures we are looking at successful logons specifically from the suspicious IP, not all logons on the DC.
 
 #### What Was Found
-- 102 successful logon events from 10.10.0.10
+- 102 successful logon events from `10.10.0.10`
 - Rule descriptions read: "Successful Remote Logon Detected — NTLM authentication, possible pass-the-hash attack"
 - Multiple employee account usernames were listed across the events
 - A service account (Service_ADISync) also appeared
-- All descriptions referenced PROXY-01 and suggested verifying if it is allowed to perform RDP connections
+- All descriptions referenced `PROXY-01` and suggested verifying if it is allowed to perform RDP connections
 
 Pass-the-Hash (PtH) is an attack technique where a threat actor steals a user's NTLM password hash from memory and uses it to authenticate without knowing the actual plaintext password. Wazuh flagged this pattern because NTLM authentication from a single IP across many accounts matches the PtH signature.
 
@@ -96,9 +96,9 @@ I also specifically checked for high-risk post-exploitation event IDs that would
 If this were a real Pass-the-Hash attack, the attacker would likely attempt to move laterally to other systems using the stolen credentials. Excluding `DC-01` from the first query reveals activity on other machines. The second query targets specific event IDs that are strong indicators of post-exploitation activity.
 
 #### What Was Found
-- 3 events on agent FS-01 (a file server)
+- 3 events on agent `FS-01` (a file server)
 - Event IDs were 4624 (1 successful logon) and 5140 (2 network share access events)
-- The logon showed the account PROXY-01$ — the machine account (computer accounts end in $) for PROXY-01
+- The logon showed the account `PROXY-01$` — the machine account (computer accounts end in $) for `PROXY-01`
 - All 3 events occurred at 4:29, clustered together suggesting a single automated task
 - No 7045, 4698, or 4702 events — no services or scheduled tasks were created
 
@@ -109,8 +109,8 @@ agent.name: "PROXY-01"
 The repeated references to `PROXY-01` in the alert descriptions, combined with the `PROXY-01$` machine account appearing in the `FS-01` events, pointed to a known system. I confirmed this with the IT team in standup, who verified the IP belongs to the organization's MFA Authentication Proxy — cross-checking the log data against a human source rather than relying on the hostname alone.
 
 #### What Was Found
-- No Wazuh agent exists for PROXY-01 — it is not enrolled in Wazuh monitoring
-- PROXY-01 is the organization's MFA Authentication Proxy server
+- No Wazuh agent exists for `PROXY-01` — it is not enrolled in Wazuh monitoring
+- `PROXY-01` is the organization's MFA Authentication Proxy server
 - The MFA proxy authenticates users via NTLM/LDAP against Active Directory as a normal part of its operation
 - Every user who logs in through MFA will generate a logon event on the DC originating from the MFA proxy's IP
 - This explains the 102 successful logons across multiple accounts — it represents normal user authentication through MFA, not an attacker
