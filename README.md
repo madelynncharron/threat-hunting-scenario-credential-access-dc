@@ -21,7 +21,7 @@ While proactively threat hunting for unauthorized credential access activity, I 
 
 ---
 
-_Screenshots have been redacted to remove internal hostnames and IP addresses in accordance with data handling practices_
+_Screenshots have been redacted to remove internal hostnames and IP addresses in accordance with data handling practices. Internal hostnames and IP addresses have also been altered to protect confidentialy._
 
 ## Investigation Walkthrough
 
