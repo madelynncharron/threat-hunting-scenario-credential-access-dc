@@ -2,7 +2,9 @@
 **Author:** Madelynn Charron  
 **Date:** June 2026  
 **Tools used:** Wazuh (OpenSearch Dashboards / DQL)
+**Scenario Type:** Investigated within a live production enterprise environment
 
+---
 
 ## Overview
 
@@ -21,7 +23,7 @@ While proactively threat hunting for unauthorized credential access activity, I 
 
 ---
 
-_Screenshots have been redacted to remove internal hostnames and IP addresses in accordance with data handling practices. Internal hostnames and IP addresses have also been altered to protect confidentialy._
+_Screenshots have been redacted to remove internal hostnames and IP addresses in accordance with data handling practices. Internal hostnames and IP addresses have also been altered to protect confidentiality._
 
 ## Investigation Walkthrough
 
@@ -79,7 +81,7 @@ data.win.eventdata.ipAddress: 10.10.0.10 and not agent.name: "DC-01"
 ```
 Searches for the same source IP authenticating against *other* hosts in the environment. No hits — no evidence of lateral movement.
 <img width="2481" height="140" alt="image" src="https://github.com/user-attachments/assets/27ed7c3d-4125-4cf1-bd61-8d7e2bc4841e" />
-To determine if `10.10.0.10` had touched any other systems beyond `DC-01`, I broadened the search across all agents
+To determine if `10.10.0.10` had touched any other systems beyond `DC-01`, I broadened the search across all agents.
 
 ### Step 4b — Check for persistence or post-exploitation activity
 ```
