@@ -32,7 +32,7 @@ _Screenshots have been redacted to remove internal hostnames and IP addresses in
 rule.mitre.tactic: "Credential Access"
 ```
 Queried for activity mapped to the Credential Access tactic to identify leads worth investigating further, and scoped the time window to the last 24 hours for the rest of the hunt.
-<img width="1901" height="80" alt="image" src="https://github.com/user-attachments/assets/d4bcecc4-f81a-48e9-ab22-4adcfeed12e5" />
+![Initial Discovery](images/step1.png)
 "Credential Access" covers techniques used to steal account credentials such as passwords and hashes. Starting with a broad MITRE tactic query is a good first step when triaging unknown activity because it surfaces activity that Wazuh has already mapped to known attack patterns, making them higher priority to investigate.
 
 #### What Was Found
@@ -46,7 +46,7 @@ Queried for activity mapped to the Credential Access tactic to identify leads wo
 agent.name: "DC-01" and data.win.system.eventID: 4625
 ```
 Pulls the raw failed-logon events (Event ID 4625) that triggered the detection rule, rather than relying on the alert summary alone.
-<img width="2335" height="139" alt="image" src="https://github.com/user-attachments/assets/f56e8ce5-fad8-4941-85db-eabb0005d1e4" />
+![Failed Logon Events](images/step2.png)
 Rule 60204 is a composite/aggregation rule, meaning Wazuh fired it as a summary after detecting multiple individual failed logon events. To find the raw underlying events, I queried for Windows Event ID 4625 (Failed Logon) directly on `DC-01`. Windows Event ID 4625 is the standard Windows Security log event for a failed logon attempt. By filtering to `DC-01` specifically, I narrowed the scope to just the Domain Controller that triggered the alert. Domain Controllers are high-value targets because they manage authentication for the entire organization, so failed logon events on a DC warrant close attention.
 
 #### What Was Found
@@ -62,7 +62,7 @@ The spread-out timing of the attempts (not clustered together) is consistent wit
 agent.name: "DC-01" and data.win.system.eventID: 4624 and data.win.eventdata.ipAddress: 10.10.0.10
 ```
 Determines whether the source IP eventually succeeded in authenticating — an important distinction between "someone is guessing passwords" and "known authentication traffic that looks noisy."
-<img width="2446" height="712" alt="image" src="https://github.com/user-attachments/assets/cffdbfdb-a09c-4139-b5e9-efaadc9497fa" />
+![Successful Logons](images/step3.png)
 The most critical question after finding failed logons is whether any succeeded. Windows Event ID 4624 is a successful logon event. If an attacker was failing to log in and then suddenly succeeded, that would represent a critical finding. Combining the agent filter, the event ID, and the source IP ensures we are looking at successful logons specifically from the suspicious IP, not all logons on the DC.
 
 #### What Was Found
@@ -80,7 +80,7 @@ Pass-the-Hash (PtH) is an attack technique where a threat actor steals a user's 
 data.win.eventdata.ipAddress: 10.10.0.10 and not agent.name: "DC-01"
 ```
 Searches for the same source IP authenticating against *other* hosts in the environment. No hits — no evidence of lateral movement.
-<img width="2481" height="140" alt="image" src="https://github.com/user-attachments/assets/27ed7c3d-4125-4cf1-bd61-8d7e2bc4841e" />
+![Lateral Movement](images/step4.png)
 To determine if `10.10.0.10` had touched any other systems beyond `DC-01`, I broadened the search across all agents.
 
 ### Step 4b — Check for persistence or post-exploitation activity
