@@ -138,7 +138,7 @@ It also pointed to a real fix: if this pattern keeps showing up and getting inve
 | Finding | Assessment |
 |---------|------------|
 | 4 failed logons (4625) on `DC-01` | Likely MFA proxy retry or timeout behavior |
-| 102 successful logons (4624) from 10.10.0.10 | Normal MFA proxy authenticating users against AD |
+| 102 successful logons (4624) from `10.10.0.10` | Normal MFA proxy authenticating users against AD |
 | Multiple employee accounts in logon events | Expected — MFA processes all user authentications |
 | Service_ADISync account appearing | Expected — AD sync service authenticates through MFA |
 | NTLM flagged as possible Pass-the-Hash | False positive — NTLM is MFA proxy's authentication method |
