@@ -1,7 +1,7 @@
 # Threat Hunting Scenario: Credential Access Alert on a Domain Controller
 **Author:** Madelynn Charron  
 **Date:** June 2026  
-**Tools used:** Wazuh (OpenSearch Dashboards / DQL)
+**Tools used:** Wazuh (OpenSearch Dashboards / DQL)  
 **Scenario Type:** Investigated within a live production enterprise environment
 
 ---
